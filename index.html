@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAT Pitch: Carbo.ai & Healthcare</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --text: #ffffff;
+            --sub: #86868b;
+            --accent-esg: #2997ff;
+            --accent-hc: #00f2fe;
+            --bento-bg: rgba(255,255,255,0.06);
+            --bento-border: rgba(255,255,255,0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- UI CONTROLS --- */
+        .controls {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 1000; display: flex; gap: 10px; padding: 6px;
+            background: rgba(20,20,20,0.85); backdrop-filter: blur(20px);
+            border-radius: 100px; border: 1px solid var(--bento-border);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        body:hover .controls { opacity: 1; }
+        .tab {
+            padding: 10px 22px; border-radius: 100px; border: none;
+            background: none; color: var(--sub); font-weight: 600; cursor: pointer;
+            transition: 0.2s; font-size: 14px;
+        }
+        .tab.active { background: #333; color: #fff; }
+        
+        .pdf-btn {
+            background: #ffffff; color: #000; font-size: 11px; text-transform: uppercase;
+            letter-spacing: 1.5px; margin-left: 10px; border-radius: 100px; border: none;
+            padding: 0 18px; cursor: pointer; font-weight: 800; transition: 0.2s;
+        }
+        .pdf-btn:hover { background: var(--accent-esg); color: #fff; }
+
+        .progress {
+            position: fixed; bottom: 0; left: 0; height: 3px;
+            background: var(--accent-esg); transition: width 0.3s; z-index: 1000;
+        }
+
+        /* --- SLIDE ARCHITECTURE --- */
+        .deck { display: none; width: 100%; height: 100%; }
+        .deck.active { display: block; }
+        .slide {
+            display: none; width: 100vw; height: 100vh;
+            padding: 60px 8%; flex-direction: column; justify-content: center;
+            position: relative;
+        }
+        .slide.active { display: flex; animation: slideIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        /* --- TYPOGRAPHY --- */
+        h1 { font-size: 6.5rem; font-weight: 700; letter-spacing: -0.04em; margin-bottom: 1rem; line-height: 0.95; }
+        h2 { font-size: 4rem; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 2rem; }
+        h3 { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.8rem; color: #fff; }
+        p, li { font-size: 1.35rem; color: var(--sub); line-height: 1.5; }
+        strong { color: #fff; font-weight: 600; }
+        .accent-e { color: var(--accent-esg); }
+        .accent-h { color: var(--accent-hc); }
+
+        /* --- LAYOUTS --- */
+        .grid-2 { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 4rem; align-items: start; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
+        .bento {
+            background: var(--bento-bg); border: 1px solid var(--bento-border);
+            padding: 2.5rem; border-radius: 24px; height: 100%;
+        }
+        .stat { font-size: 4rem; font-weight: 700; display: block; margin-bottom: 0.5rem; letter-spacing: -0.05em; line-height: 1; }
+        
+        ul { list-style: none; }
+        ul li { margin-bottom: 0.8rem; padding-left: 1.5rem; position: relative; }
+        ul li::before { content: "•"; color: #555; position: absolute; left: 0; }
+
+        /* --- ANIMATIONS --- */
+        .reveal { opacity: 0; transform: translateY(15px); animation: reveal 0.8s forwards; }
+        .d1 { animation-delay: 0.1s; } .d2 { animation-delay: 0.2s; } .d3 { animation-delay: 0.3s; }
+        @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
+
+        /* --- PDF / PRINT ENGINE --- */
+        @media print {
+            @page { size: landscape; margin: 0; }
+            html, body { 
+                overflow: visible !important; 
+                height: auto !important; 
+                width: auto !important;
+                background: #000 !important; 
+                -webkit-print-color-adjust: exact !important; 
+                color-adjust: exact !important;
+            }
+            .controls, .progress { display: none !important; }
+            .deck { display: block !important; opacity: 1 !important; height: auto !important; }
+            .slide { 
+                display: flex !important; 
+                opacity: 1 !important; 
+                visibility: visible !important;
+                position: relative !important; 
+                page-break-after: always !important; 
+                break-after: page !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                transform: none !important;
+                padding: 50px 8% !important;
+            }
+            .reveal { opacity: 1 !important; transform: none !important; animation: none !important; }
+            .bento { background: rgba(255,255,255,0.08) !important; border: 1px solid rgba(255,255,255,0.2) !important; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <button class="tab active" onclick="switchDeck('esg')">1. Carbo.ai (ESG)</button>
+        <button class="tab" onclick="switchDeck('hc')">2. Pre-Visit (Health)</button>
+        <button class="pdf-btn" onclick="window.print()">Save PDF</button>
+    </div>
+    <div id="progress" class="progress"></div>
+
+    <div id="deck-esg" class="deck active">
+        
+        <div class="slide active">
+            <h2 class="reveal">The Regulatory Crisis.</h2>
+            <div class="grid-2 reveal d1">
+                <div>
+                    <p style="font-size: 2rem; color: #fff; margin-bottom: 2rem;">Spanish companies are hitting a manual reporting bottleneck.</p>
+                    <ul>
+                        <li><strong>Manual Overload:</strong> ESG teams waste 200+ hours on Excels with a 5% error rate.</li>
+                        <li><strong>Financial Drain:</strong> €150k/year spent on manual consultants for simple data gathering.</li>
+                        <li><strong>The Law:</strong> RD 214/2025 mandates reporting for 4,000 firms by mid-2026.</li>
+                    </ul>
+                </div>
+                <div class="bento" style="border-color: #ff3b30; background: rgba(255, 59, 48, 0.05);">
+                    <h3 style="color: #ff3b30;">Current State</h3>
+                    <p>4,000 Companies.</p>
+                    <p>12 Months to go.</p>
+                    <p>Scope 3 = 80% of footprint.</p>
+                    <hr style="border:0; border-top:1px solid #333; margin: 1.5rem 0;">
+                    <p class="small-text">Expensive, slow, and non-scalable.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <p class="reveal accent-e" style="text-transform: uppercase; letter-spacing: 0.25em; font-weight: 800; margin-bottom: 1rem; font-size: 0.9rem;">B-Tower Accelerator Intro</p>
+            <h1 class="reveal d1">Carbo.ai</h1>
+            <h3 class="reveal d2" style="font-weight: 400; color: var(--sub); font-size: 2.5rem;">AI-Powered ESG Compliance.</h3>
+            <div class="reveal d3" style="margin-top: 4rem; border-left: 2px solid #333; padding-left: 2rem;">
+                <p><strong>Aleksei Mikhalev</strong></p>
+                <p>AI Engineer | PwC among current clients</p>
+                <p class="small-text">Bilbao, Basque Country • February 2026</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">The 2025 Deadline.</h2>
+            <div class="grid-2 reveal d1">
+                <div>
+                    <h3 class="accent-e">Royal Decree 214/2025</h3>
+                    <p>Effective June 2025. First reports due 2026.</p>
+                    <ul style="margin-top: 1.5rem;">
+                        <li><strong>Who:</strong> 250+ employees or €20M+ assets.</li>
+                        <li><strong>What:</strong> GHG Protocol + ISO 14064 + CSRD.</li>
+                        <li><strong>Risk:</strong> Legal non-compliance and massive fines.</li>
+                    </ul>
+                </div>
+                <div class="bento">
+                    <span class="stat accent-e">€150k</span>
+                    <p>Consultant cost for manual Scope 3 analysis.</p>
+                    <br>
+                    <span class="stat accent-e">Scope 3</span>
+                    <p>nearly impossible to track manually (70-80% of total footprint).</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">Built by Experts.</h2>
+            <div class="grid-3 reveal d1">
+                <div class="bento">
+                    <h3>The PwC Era</h3>
+                    <p class="small-text">Built GHG modules for PwC clients. Expert in data quality and MITECO factors.</p>
+                </div>
+                <div class="bento">
+                    <h3>The Engineer</h3>
+                    <p class="small-text">5 Years Experience. Specializing in RAG and Agentic AI. €11k/mo current revenue.</p>
+                </div>
+                <div class="bento">
+                    <h3>The Local</h3>
+                    <p class="small-text">Bilbao-based (by May-June 2026). Deeply connected to Spanish industry and B2B SaaS needs.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">Agentic Platform.</h2>
+            <div class="grid-2 reveal d1">
+                <div>
+                    <h3 style="color: #888;">AI Agents working in sync:</h3>
+                    <ul style="margin-top: 1.5rem;">
+                        <li><strong>Collector:</strong> Connects to ERP, Procurement, Utilities.</li>
+                        <li><strong>Calculator:</strong> Spain-specific MITECO emission factors.</li>
+                        <li><strong>Checker:</strong> RAG system audits against RD 214/2025.</li>
+                        <li><strong>Reporter:</strong> Generates Audit-ready PDF/XBRL.</li>
+                    </ul>
+                </div>
+                <div class="bento" style="border: 1px solid var(--accent-esg);">
+                    <h3 class="accent-e">Result</h3>
+                    <p style="font-size: 2.2rem; font-weight: 700; color: #fff; margin: 1rem 0;">200h → 4-6 Weeks</p>
+                    <p style="font-size: 2.2rem; font-weight: 700; color: #fff;">€150k → €40-60k</p>
+                    <p class="small-text" style="margin-top: 1rem;">Azure/AWS Spanish Residency Data Compliant.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">Perfect Timing.</h2>
+            <div class="grid-2 reveal d1">
+                <div class="bento">
+                    <h3>The Window</h3>
+                    <p>12-18 months before US players (Watershed) localize. Currently no Spain-first agentic platform exists.</p>
+                </div>
+                <div class="bento">
+                    <h3>Market Size</h3>
+                    <p>Immediate: ~4,000 mandatory firms.</p>
+                    <p>Extended: ~15,000 voluntary reporters.</p>
+                    <p>Target: Mid-size Manufacturing & Energy.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">Revenue & Validation.</h2>
+            <div class="grid-2 reveal d1">
+                <div>
+                    <h3 class="accent-e">Hybrid SaaS Model</h3>
+                    <p>Implementation: €40-60k (One-time)</p>
+                    <p>Subscription: €12-18k/year (Recurring)</p>
+                </div>
+                <div class="bento">
+                    <h3>Year 1 Target</h3>
+                    <span class="stat accent-e">€700k</span>
+                    <p>Revenue goal with 10-15 pilot customers.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">B-Tower Partnership.</h2>
+            <div class="grid-2 reveal d1">
+                <div class="bento" style="background: rgba(41, 151, 255, 0.05);">
+                    <h3>The Network</h3>
+                    <ul>
+                        <li>Intro to <strong>Manufacturing CFOs</strong>.</li>
+                        <li>PwC mentor access (regulatory sync).</li>
+                        <li>Beaz/BBK program guidance.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Next 90 Days</h3>
+                    <ul class="clean-list">
+                        <li><strong>Month 1:</strong> Build core GHG MVP.</li>
+                        <li><strong>Month 2:</strong> Discovery with 5 pilot candidates.</li>
+                        <li><strong>Month 3:</strong> Secure first paid pilot.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h1 class="reveal">Questions?</h1>
+            <p class="reveal d1" style="font-size: 2rem;">mikhalev.aleksei1@gmail.com</p>
+            <p class="reveal d2" style="margin-top: 2rem;">Thank you for your honest feedback.</p>
+        </div>
+    </div>
+
+    <div id="deck-hc" class="deck">
+        
+        <div class="slide">
+            <h2 class="reveal">The Healthcare Wall.</h2>
+            <div class="grid-2 reveal d1">
+                <div>
+                    <p style="font-size: 2rem; color: #fff; margin-bottom: 2rem;">Efficiency is collapsing under manual clinical documentation.</p>
+                    <ul>
+                        <li><strong>Administrative Burnout:</strong> Physicians spend 40% of their day on data vs. care.</li>
+                        <li><strong>Patient Wait Times:</strong> 128-day average in Spain (2nd worst globally).</li>
+                        <li><strong>Data Blindness:</strong> Doctors see patients without seeing the full medical history buried in PDFs.</li>
+                    </ul>
+                </div>
+                <div class="bento" style="border-color: #ff3b30; background: rgba(255, 59, 48, 0.05);">
+                    <h3 style="color: #ff3b30;">Crisis Stats</h3>
+                    <p>54% Physician Burnout.</p>
+                    <p>450M → 2.7B Market by 2035.</p>
+                    <p>15 mins lost per visit.</p>
+                    <hr style="border:0; border-top:1px solid #333; margin: 1.5rem 0;">
+                    <p class="small-text">Current AI only listens. It doesn't prepare.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <p class="reveal accent-h" style="text-transform: uppercase; letter-spacing: 0.25em; font-weight: 800; margin-bottom: 1rem; font-size: 0.9rem;">Future Opportunity: Year 2-3</p>
+            <h1 class="reveal d1">Pre-Visit Intelligence</h1>
+            <h3 class="reveal d2" style="font-weight: 400; color: var(--sub); font-size: 2.5rem;">Clinical Prep Assistant.</h3>
+            <div class="reveal d3" style="margin-top: 4rem; border-left: 2px solid #333; padding-left: 2rem;">
+                <p><strong>Aleksei Mikhalev</strong></p>
+                <p>AI Engineer | Exploratory Project</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">Physicians are Drowning.</h2>
+            <div class="grid-2 reveal d1">
+                <div class="bento">
+                    <span class="stat accent-h">128 Days</span>
+                    <p>Spain's wait time crisis. Doctors spend too long asking basic history questions.</p>
+                </div>
+                <div class="bento">
+                    <span class="stat accent-h">40%</span>
+                    <p>Time spent on documentation. Primary cause of the 54% burnout rate.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">The Market Gap.</h2>
+            <div class="grid-2 reveal d1">
+                <div>
+                    <h3 style="color:#888;">Existing: Ambient Scribes</h3>
+                    <p>Nuance DAX (Microsoft) and Abridge (30% share) listen <i>during</i> visits.</p>
+                    <p style="margin-top: 1.5rem;"><strong>The Gap:</strong> No one is prepping the doctor 3 days <i>before</i> the patient arrives.</p>
+                </div>
+                <div class="bento">
+                    <h3 class="accent-h">Market Size</h3>
+                    <p>€600M sector growing 2.4x YoY.</p>
+                    <p>68% of physicians already use AI for post-visit notes.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">How it Works.</h2>
+            <div class="grid-2 reveal d1">
+                <ul style="font-size: 1.5rem;">
+                    <li><strong>1. Upload:</strong> Patient uploads records 3 days prior.</li>
+                    <li><strong>2. Analysis:</strong> AI creates a timeline & flags risks.</li>
+                    <li><strong>3. Dashboard:</strong> Doctor gets a 1-page "Flight Plan."</li>
+                </ul>
+                <div class="bento">
+                    <h3 class="accent-h">The Value</h3>
+                    <p>Save 15-20 minutes per patient. Higher throughput. Better diagnosis. Less burnout.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">Technical Privacy.</h2>
+            <div class="grid-2 reveal d1">
+                <div class="bento">
+                    <h3 class="accent-h">Option A: Cloud Standard</h3>
+                    <p class="small-text">Azure Health Data Services. HIPAA/GDPR compliant. Standard enterprise speed.</p>
+                </div>
+                <div class="bento" style="border: 1px solid var(--accent-hc);">
+                    <h3 class="accent-h">Option B: On-Device</h3>
+                    <p class="small-text"><strong>Llama 3.2 1B</strong> runs on patient's phone. Medical data never leaves the device. Maximum privacy.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">Reality Check.</h2>
+            <div class="grid-2 reveal d1">
+                <div>
+                    <h3 style="color: #ff6b6b;">Why it's Hard</h3>
+                    <ul>
+                        <li>Regulatory: Class I Medical Device CE Mark.</li>
+                        <li>Behavior: Will patients upload early?</li>
+                        <li>Team: Need a Clinical Co-Founder.</li>
+                    </ul>
+                </div>
+                <div class="bento">
+                    <p>This is why it's a <strong>Year 2-3 focus</strong>. ESG is my execution priority today.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <h2 class="reveal">Seeking Guidance.</h2>
+            <div class="grid-2 reveal d1">
+                <div class="bento">
+                    <h3>Reality Check</h3>
+                    <p>I need honest feedback from BAT Healthcare mentors: Is this a non-problem? Would admins pay?</p>
+                </div>
+                <div class="bento">
+                    <h3>Contact</h3>
+                    <p>mikhalev.aleksei1@gmail.com</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide">
+    <h2 class="reveal">Appendix — References</h2>
+
+    <div class="grid-2 reveal d1">
+        
+        <!-- ESG COLUMN -->
+        <div class="bento">
+            <h3 class="accent-e">ESG & Regulation</h3>
+            <ul style="margin-top: 1.2rem;">
+                <li>
+                    Spain’s Royal Decree 214/2025 — Mandatory carbon footprint reporting  
+                    <br>
+                    <a href="https://www.the-esg-institute.org/blog/spains-new-royal-decree-214-2025-mandatory-carbon-footprint-reporting-is-here"
+                       target="_blank" style="color:#2997ff;">
+                        the-esg-institute.org
+                    </a>
+                </li>
+                <li>
+                    Spain mandates corporate climate disclosure & reduction plans  
+                    <br>
+                    <a href="https://news.sustainability-directory.com/esg/spain-mandates-corporate-climate-disclosure-and-five-year-emissions-reduction-plans/"
+                       target="_blank" style="color:#2997ff;">
+                        sustainability-directory.com
+                    </a>
+                </li>
+                <li>
+                    MITECO-aligned clarification on carbon footprint calculation decree  
+                    <br>
+                    <a href="https://amec.es/en/news-on-the-carbon-footprint-calculation-decree/"
+                       target="_blank" style="color:#2997ff;">
+                        amec.es
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- HEALTHCARE COLUMN -->
+        <div class="bento">
+            <h3 class="accent-h">Healthcare & AI Productivity</h3>
+            <ul style="margin-top: 1.2rem;">
+                <li>
+                    Physician documentation burden & admin workload  
+                    <br>
+                    <a href="https://www.advisory.com/daily-briefing/2016/09/08/documentation-time"
+                       target="_blank" style="color:#00f2fe;">
+                        advisory.com
+                    </a>
+                </li>
+                <li>
+                    Ambient AI scribes reduce burnout (clinical study)  
+                    <br>
+                    <a href="https://jamanetwork.com/journals/jamanetworkopen/fullarticle/10.1001/jamanetworkopen.2025.34976"
+                       target="_blank" style="color:#00f2fe;">
+                        JAMA Network Open
+                    </a>
+                </li>
+                <li>
+                    Spain healthcare wait times & system pressure  
+                    <br>
+                    <a href="https://www.uspceu.com/en/press-room/new/spain-healthcare-system-remains-efficient-showing-growing-deterioration-major-regional-inequalities"
+                       target="_blank" style="color:#00f2fe;">
+                        USP CEU
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+    </div>
+
+    <script>
+        let currentDeck = 'esg';
+        let currentIndex = 0;
+
+        function getSlides() { return document.querySelectorAll(`#deck-${currentDeck} .slide`); }
+
+        function update() {
+            const slides = getSlides();
+            const prog = document.getElementById('progress');
+            prog.style.width = ((currentIndex + 1) / slides.length * 100) + '%';
+            prog.style.background = currentDeck === 'esg' ? 'var(--accent-esg)' : 'var(--accent-hc)';
+
+            slides.forEach((s, i) => {
+                s.classList.toggle('active', i === currentIndex);
+                if(i === currentIndex) {
+                    const r = s.querySelectorAll('.reveal');
+                    r.forEach(el => { el.style.animation = 'none'; el.offsetHeight; el.style.animation = null; });
+                }
+            });
+        }
+
+        function switchDeck(id) {
+            currentDeck = id; currentIndex = 0;
+            document.querySelectorAll('.deck').forEach(d => d.classList.toggle('active', d.id === `deck-${id}`));
+            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.innerText.toLowerCase().includes(id)));
+            update();
+        }
+
+        window.addEventListener('keydown', e => {
+            const s = getSlides();
+            if(e.key === 'ArrowRight' || e.key === ' ') { if(currentIndex < s.length-1) { currentIndex++; update(); } }
+            if(e.key === 'ArrowLeft') { if(currentIndex > 0) { currentIndex--; update(); } }
+        });
+
+        document.body.onclick = (e) => { 
+            if(e.target.tagName !== 'BUTTON') { 
+                const s = getSlides(); 
+                if(currentIndex < s.length-1) { currentIndex++; update(); } 
+            } 
+        };
+
+        update();
+    </script>
+</body>
+</html>
